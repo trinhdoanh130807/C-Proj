@@ -1,95 +1,76 @@
 #include <bits/stdc++.h>
 using namespace std;
-int n, K, Q;
-vector<vector<int>> c;
-vector<int> d;
-vector<bool> visited;
-int minPath;
-int curPath;
-int load;
-int N;
-int last;
-vector<int> mout;
-int m;
-bool check(int i){
-    if(!visited[i] && load < d[i]) return false;
-    return !visited[i];
+int n;
+double d(pair<double, double> a, pair<double,double> b){
+    return (a.first - b.first)*(a.first - b.first) + (a.second - b.second)*(a.second - b.second);
 }
-void Try(int k, int prevF, int curF){
-    if(N == n){
-        minPath = min(minPath, curPath + c[last][0]);
-        return;
+bool comparator(const pair<double, double> &x, const pair<double, double> &y){
+    return x.second < y.second;
+}
+void mergeY(vector<pair<double, double>> &o, vector<pair<double, double>> &tem, int l, int r){
+    int mid = l + (r - l) / 2;
+    int i = l, j = mid, k = l;
+    while(i < mid && j < r){
+        if(o[i].second < o[j].second){
+            tem[k ++] = o[i ++];
+        }
+        else{
+            tem[k ++] = o[j ++];
+        }
     }
-    if(curPath + m + mout[last] >= minPath){
-        return;
+    while(i < mid){
+        tem[k ++] = o[i ++];
     }
-
-    for(int i = 1; i <= n; i ++){
-        if(!check(i)) continue;
-        if(last == 0 && i <= prevF) continue;   
-
-        int newF = (last == 0) ? i : curF;     
-        visited[i] = true;
-        curPath += c[last][i];
-        load -= d[i];
-        N ++;
-        m -= mout[i];
-        int tem = last;
-        last = i;
-
-        Try(k, prevF, newF);
-
-        last = tem;
-        visited[i] = false;
-        curPath -= c[last][i];
-        load += d[i];
-        N --;
-        m += mout[i];
+    while(j < r){
+        tem[k ++] = o[j ++];
     }
-
-    if(k + 1 < K && last != 0){
-        int tem = load;
-        int tem2 = last;
-        curPath += c[last][0];
-        load = Q;
-        last = 0;
-
-        Try(k + 1, curF, 0);                 
-
-        curPath -= c[tem2][0];
-        load = tem;
-        last = tem2;
+    for(int m = l; m < r; m ++){
+        o[m] = tem[m];
     }
+}
+double Solve(vector<pair<double, double>> &o, vector<pair<double, double>> &tem, int l, int r){
+    if(r - l <= 3){
+        double minTem = DBL_MAX;
+        for(int i = l; i < r; i ++){
+            for(int j = i + 1; j < r; j ++){
+                minTem = min(minTem, d(o[i], o[j]));
+            }
+        }
+        sort(o.begin() + l, o.begin() + r, comparator);
+
+        return minTem;
+    }
+    int mid = l + (r - l) / 2;
+    double xMid = o[mid].first;
+    double dl = Solve(o, tem, l, mid);
+    double dr = Solve(o, tem, mid, r);
+    double temd = min(dl, dr);
+    mergeY(o, tem, l, r);
+    vector<pair<double, double>> strip;
+    for(int i = l; i < r; i ++){
+        if((o[i].first - xMid) * (o[i].first - xMid) < temd) strip.push_back(o[i]); 
+    }    
+    for(int i = 0; i < strip.size(); i ++){
+        for(int j = i + 1; j < strip.size(); j ++){
+            if((strip[i].second - strip[j].second) * (strip[i].second - strip[j].second) < temd){
+                temd = min(temd, d(strip[i], strip[j]));
+            }
+            else break;
+        }
+    }
+    return temd;
 }
 int main () {
     ios_base::sync_with_stdio(false);
     cin.tie(NULL); 
-    cin >> n >> K >> Q;
-    load = Q;
-    N = 0;
-    last = 0;
-    c.resize(n + 1, vector<int> (n+1));
-    d.resize(n + 1);
-    mout.resize(n + 1);
-    visited.resize(n + 1, false);
-    curPath = 0;
-    minPath = INT_MAX;
-    for(int i = 1; i <= n; i ++){
-        cin >> d[i];
+    cin >> n;
+    vector<pair<double, double>> o(n);
+    vector<pair<double, double>> tem(n);
+    for(int i = 0; i < n; i ++){
+        cin >> o[i].first >> o[i].second;
     }
-    for(int i = 0; i <= n; i ++){
-        int tem = INT_MAX;
-        for(int j = 0; j <= n; j ++){
-            cin >> c[i][j];
-            if(i != j){
-                tem = min(tem, c[i][j]);
-            }
-        }
-        m += tem;
-        mout[i] = tem;
-    }
-    m -= mout[0];
-    Try(0, 0, 0);
-    cout << minPath;
+    sort(o.begin(), o.end());
+    double res = Solve(o, tem, 0, n);
+    cout << fixed << setprecision(6) << sqrt(res);
     return 0;
 }
